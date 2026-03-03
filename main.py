@@ -4,37 +4,32 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from pymongo import MongoClient
 from datetime import datetime, timezone
-
-
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
-
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 
-# Load ENV
+
 load_dotenv()
 
 groq_api = os.getenv("API_KEY")
 mongo_uri = os.getenv("MONGO_URI")
 
-# MongoDB
+
 client = MongoClient(mongo_uri)
 db = client["hospital_assistant"]
 collection = db["chats"]
 
-# FastAPI
+
 app = FastAPI()
 
-# Request Model
+
 class ChatRequest(BaseModel):
     user_id: str
     question: str
 
 
-# -----------------------------
-# HOSPITAL KNOWLEDGE BASE
-# -----------------------------
+
 
 hospital_data = [
 
@@ -47,8 +42,6 @@ hospital_data = [
 "Facilities: Modern operation theatre, Eye testing lab, Pharmacy",
 
 "Insurance: CGHS, Mediclaim accepted",
-
-"Doctors: Dr. Mahatme, Retina specialist",
 
 "Working Hours: 9AM to 6PM Monday to Saturday",
 
@@ -63,9 +56,6 @@ hospital_data = [
 ]
 
 
-# -----------------------------
-# VECTOR DATABASE
-# -----------------------------
 
 embeddings = HuggingFaceEmbeddings(
 model_name="sentence-transformers/all-MiniLM-L6-v2"
@@ -79,9 +69,7 @@ embeddings
 retriever = vectorstore.as_retriever()
 
 
-# -----------------------------
-# PROMPT
-# -----------------------------
+
 
 prompt = ChatPromptTemplate.from_messages([
 
@@ -97,9 +85,7 @@ prompt = ChatPromptTemplate.from_messages([
 ])
 
 
-# -----------------------------
-# LLM
-# -----------------------------
+
 
 llm = ChatGroq(
 api_key=groq_api,
@@ -137,9 +123,7 @@ def home():
     }
 
 
-# -----------------------------
-# CHATBOT ROUTE
-# -----------------------------
+
 
 @app.post("/chatbot")
 def chatbot(request: ChatRequest):
