@@ -1,16 +1,15 @@
 import json
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from langchain_community.vectorstores import FAISS
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
-from langchain_huggingface import HuggingFaceEmbeddings
 from pydantic import BaseModel
 from pymongo import MongoClient
 
@@ -67,25 +66,14 @@ hospital_data = [
     "LASIK surgery improves vision permanently",
 ]
 
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
-
 faq_path = BACKEND_DIR / "data" / "faq.json"
 with faq_path.open(encoding="utf-8") as file:
     faqs = json.load(file)
 
-faq_texts = [
+knowledge_base = hospital_data + [
     f"Question: {faq['question']} Answer: {faq['answer']}"
     for faq in faqs
 ]
-
-vectorstore = FAISS.from_texts(
-    hospital_data + faq_texts,
-    embeddings,
-)
-
-retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
 prompt = ChatPromptTemplate.from_messages(
     [
@@ -109,6 +97,29 @@ llm = ChatGroq(
 )
 
 chain = prompt | llm
+
+
+def tokenize(text: str) -> set[str]:
+    return set(re.findall(r"\b[a-z0-9]+\b", text.lower()))
+
+
+def get_relevant_context(question: str, limit: int = 3) -> str:
+    question_tokens = tokenize(question)
+    scored_items = []
+
+    for item in knowledge_base:
+        item_tokens = tokenize(item)
+        overlap = len(question_tokens & item_tokens)
+        if overlap > 0:
+            scored_items.append((overlap, item))
+
+    scored_items.sort(key=lambda entry: entry[0], reverse=True)
+    selected_items = [item for _, item in scored_items[:limit]]
+
+    if not selected_items:
+        selected_items = knowledge_base[:limit]
+
+    return "\n".join(selected_items)
 
 
 def get_history(user_id: str):
@@ -149,8 +160,7 @@ def home():
 
 @app.post("/chatbot")
 def chatbot(request: ChatRequest):
-    docs = retriever.invoke(request.question)
-    context = "\n".join([doc.page_content for doc in docs])
+    context = get_relevant_context(request.question)
 
     chat_history = get_history(request.user_id)
     response = chain.invoke(
