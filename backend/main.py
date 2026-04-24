@@ -21,11 +21,7 @@ load_dotenv(BACKEND_DIR / ".env")
 load_dotenv(ROOT_DIR / ".env", override=False)
 
 groq_api = os.getenv("API_KEY")
-mongo_uri = (
-    os.getenv("MONGO_URI")
-    or os.getenv("BOOKING_MONGO_URI")
-    or "mongodb://localhost:27017"
-)
+mongo_uri = os.getenv("MONGO_URI") or "mongodb://localhost:27017"
 
 client = MongoClient(mongo_uri)
 
