@@ -10,6 +10,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from fastapi.middleware.cors import CORSMiddleware
+from langchain_core.messages import HumanMessage, AIMessage
 
 load_dotenv()
 
@@ -94,9 +95,10 @@ retriever = vectorstore.as_retriever(
 prompt = ChatPromptTemplate.from_messages([
 
 ("system",
-"You are Mahatme Eye Hospital assistant chatbot. "
-"Answer ONLY from hospital information. "
-"If answer not available say 'Please contact hospital.'"
+"""You are a helpful hospital assistant.
+Use the hospital information provided.
+Dont give long answers just give brief answers
+If exact answer is not found, give a helpful general response and suggest contacting the hospital."""
 ),
 
 ("user",
@@ -115,25 +117,26 @@ model="llama-3.1-8b-instant"
 
 chain = prompt | llm
 
+
+
 def get_history(user_id):
 
     chats = collection.find(
         {"user_id": user_id}
-    ).sort("timestamp", 1)
+    ).sort("timestamp", -1).limit(6)  # last 6 messages
 
     history = []
 
+    # Reverse to maintain correct order
+    chats = list(chats)[::-1]
+
     for chat in chats:
-
-        history.append(
-            ("user", chat["question"])
-        )
-
-        history.append(
-            ("assistant", chat["answer"])
-        )
+        history.append(HumanMessage(content=chat["question"]))
+        history.append(AIMessage(content=chat["answer"]))
 
     return history
+
+
 @app.get("/")
 def home():
 
@@ -148,40 +151,29 @@ def home():
 @app.post("/chatbot")
 def chatbot(request: ChatRequest):
 
-    docs = retriever.invoke(
-        request.question
-    )
+  
+    docs = retriever.invoke(request.question)
 
-    context = ""
+    context = "\n".join([d.page_content for d in docs])
 
-    for d in docs:
-        context += d.page_content + "\n"
+
+    chat_history = get_history(request.user_id)
 
 
     response = chain.invoke({
-
         "context": context,
-
-        "question": request.question
-
-    })
-
-
-    collection.insert_one({
-
-        "user_id": request.user_id,
-
         "question": request.question,
-
-        "answer": response.content,
-
-        "timestamp": datetime.now(timezone.utc)
-
+        "chat_history": chat_history
     })
 
+  
+    collection.insert_one({
+        "user_id": request.user_id,
+        "question": request.question,
+        "answer": response.content,
+        "timestamp": datetime.now(timezone.utc)
+    })
 
     return {
-
         "response": response.content
-
     }

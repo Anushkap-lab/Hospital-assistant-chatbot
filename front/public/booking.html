@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Appointment</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #eef2f7;
+        }
+        
+        .main {
+            display: flex;
+            height: 100vh;
+        }
+        /* LEFT SIDE */
+        
+        .left {
+            width: 40%;
+            background: url('https://images.unsplash.com/photo-1588776814546-ec7e6e9b0c91');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            color: white;
+        }
+        
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .overlay h1 {
+            margin-bottom: 10px;
+        }
+        
+        .overlay select {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: none;
+        }
+        /* RIGHT SIDE */
+        
+        .right {
+            width: 60%;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        h2 {
+            margin-top: 0;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+        
+        .slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+        }
+        
+        .slot {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #3498db;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .slot.selected {
+            background: #2ecc71;
+            color: white;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            background: #3498db;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="main">
+
+        <!-- LEFT -->
+        <div class="left">
+            <div class="overlay">
+                <h1>Mahatme Eye Hospital</h1>
+                <p>Nagpur</p>
+
+                <label>Select Doctor</label>
+                <select id="doctor">
+        <option>Dr. Sharma (Eye Specialist)</option>
+        <option>Dr. Mehta (Cataract)</option>
+        <option>Dr. Patil (Retina)</option>
+      </select>
+
+                <label>Appointment For</label>
+                <select id="purpose">
+        <option>General Checkup</option>
+        <option>Eye Surgery</option>
+        <option>Vision Test</option>
+      </select>
+            </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="right">
+            <h2>Book Appointment</h2>
+
+            <div class="section">
+                <label>Select Date</label>
+                <input type="date" id="date" onchange="generateSlots()">
+            </div>
+
+            <div id="slotsContainer"></div>
+
+            <div class="section">
+                <label>Name</label>
+                <input type="text" id="name">
+
+                <label>Phone</label>
+                <input type="text" id="phone">
+            </div>
+
+            <button onclick="book()">Confirm Appointment</button>
+        </div>
+
+    </div>
+
+    <script>
+        let selectedSlot = "";
+
+        function generateSlots() {
+            const container = document.getElementById("slotsContainer");
+            container.innerHTML = "";
+
+            const timings = {
+                Morning: ["09:00 AM", "10:00 AM", "11:00 AM"],
+                Afternoon: ["12:00 PM", "01:00 PM", "02:00 PM"],
+                Evening: ["04:00 PM", "05:00 PM", "06:00 PM"]
+            };
+
+            for (let period in timings) {
+                let html = `<h3>${period}</h3><div class='slots'>`;
+                timings[period].forEach(time => {
+                    html += `<div class='slot' onclick="selectSlot(this)">${time}</div>`;
+                });
+                html += `</div>`;
+                container.innerHTML += html;
+            }
+        }
+
+        function selectSlot(el) {
+            document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedSlot = el.innerText;
+        }
+
+        function book() {
+            const name = document.getElementById("name").value;
+            const phone = document.getElementById("phone").value;
+            const date = document.getElementById("date").value;
+            const doctor = document.getElementById("doctor").value;
+            const purpose = document.getElementById("purpose").value;
+
+            if (!name || !phone || !date || !selectedSlot) {
+                alert("Fill all details");
+                return;
+            }
+
+            // Create custom modal instead of browser alert
+            const modal = document.createElement("div");
+            modal.style.position = "fixed";
+            modal.style.top = "0";
+            modal.style.left = "0";
+            modal.style.width = "100%";
+            modal.style.height = "100%";
+            modal.style.background = "rgba(0,0,0,0.6)";
+            modal.style.display = "flex";
+            modal.style.justifyContent = "center";
+            modal.style.alignItems = "center";
+
+            modal.innerHTML = `
+    <div style="background:white; padding:20px; border-radius:10px; width:300px; text-align:center;">
+      <h3>✅ Appointment Confirmed</h3>
+      <p><b>Name:</b> ${name}</p>
+      <p><b>Doctor:</b> ${doctor}</p>
+      <p><b>Purpose:</b> ${purpose}</p>
+      <p><b>Date:</b> ${date}</p>
+      <p><b>Time:</b> ${selectedSlot}</p>
+      <button onclick="this.parentElement.parentElement.remove()" style="margin-top:10px; padding:8px 15px; background:#3498db; color:white; border:none; border-radius:5px;">OK</button>
+    </div>
+  `;
+
+            document.body.appendChild(modal);
+        }
+    </script>
+
+</body>
+
+</html>
