@@ -1,3 +1,4 @@
+import json
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -9,7 +10,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from fastapi.middleware.cors import CORSMiddleware
-
 
 load_dotenv()
 
@@ -25,7 +25,6 @@ collection = db["chats"]
 app = FastAPI()
 
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
@@ -36,8 +35,8 @@ app.add_middleware(
 
 
 class ChatRequest(BaseModel):
+    user_id: str
     question: str
-
 
 
 
@@ -72,12 +71,22 @@ embeddings = HuggingFaceEmbeddings(
 model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
+with open("data/faq.json") as f:
+    faqs = json.load(f)
+
+faq_texts = [
+    f"Question: {faq['question']} Answer: {faq['answer']}"
+    for faq in faqs
+]
+
 vectorstore = FAISS.from_texts(
-hospital_data,
-embeddings
+    hospital_data + faq_texts,
+    embeddings
 )
 
-retriever = vectorstore.as_retriever()
+retriever = vectorstore.as_retriever(
+    search_kwargs={"k": 3}
+)
 
 
 
@@ -106,11 +115,25 @@ model="llama-3.1-8b-instant"
 
 chain = prompt | llm
 
+def get_history(user_id):
 
-history = []
+    chats = collection.find(
+        {"user_id": user_id}
+    ).sort("timestamp", 1)
 
-    
+    history = []
 
+    for chat in chats:
+
+        history.append(
+            ("user", chat["question"])
+        )
+
+        history.append(
+            ("assistant", chat["answer"])
+        )
+
+    return history
 @app.get("/")
 def home():
 
@@ -162,8 +185,3 @@ def chatbot(request: ChatRequest):
         "response": response.content
 
     }
-
-@app.get("/api/history")
-async def get_history():
-    chats = list(collection.find({}, {"_id": 0}))
-    return {"history": chats}
