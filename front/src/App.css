@@ -2,3 +2,16 @@
   width: 100%;
   height: 100%;
 }
+
+.simple-home {
+  min-height: 100%;
+  background-color: #e6f4ff;
+  padding: 48px 24px;
+}
+
+.simple-home__title {
+  margin: 0;
+  text-align: center;
+  color: #0f3d62;
+  font-size: 2.5rem;
+}
