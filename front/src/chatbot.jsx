@@ -2,8 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import BookingComponent from "./BookingComponent";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
-const BOOKING_API_BASE =
-  import.meta.env.VITE_BOOKING_API_BASE_URL || API_BASE;
 const USER_ID = "guest_" + Math.random().toString(36).slice(2, 8);
 
 const EyeIcon = () => (
@@ -523,7 +521,7 @@ export default function MahatmeChatbot() {
               }}
             >
               <BookingComponent
-                apiBase={BOOKING_API_BASE}
+                apiBase={API_BASE}
                 onClose={() => setShowBooking(false)}
               />
             </div>

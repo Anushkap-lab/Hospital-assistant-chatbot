@@ -11,6 +11,16 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/book-appointment': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/appointments': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 })
