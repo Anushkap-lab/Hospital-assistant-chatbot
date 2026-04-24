@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 export default function BookingComponent({
   onClose,
-  apiBase = "http://localhost:8000",
+  apiBase = "https://hospital-assistant-chatbot.onrender.com",
 }) {
   const [doctor, setDoctor] = useState("Dr. Sharma (Eye Specialist)");
   const [purpose, setPurpose] = useState("General Checkup");
